@@ -73,12 +73,9 @@ boost::filesystem::path GetDestPath() {
   return path;
 }
 
-std::vector<std::wstring> GetVisibleWindowTitleList() {
+std::vector<std::wstring> GetWindowTitleList() {
   std::vector<std::wstring> result;
   ::EnumWindows([](const HWND handle, const LPARAM resultPtr) -> BOOL {
-    if (!::IsWindowVisible(handle)) {
-      return TRUE;
-    }
     wchar_t buf[4096];
     const unsigned int length = ::GetWindowTextW(handle, buf, _countof(buf));
     reinterpret_cast<std::vector<std::wstring>*>(resultPtr)->push_back({ &buf[0], &buf[length] });
@@ -87,17 +84,20 @@ std::vector<std::wstring> GetVisibleWindowTitleList() {
   return result;
 }
 std::wstring GetAmaRecTvTitle() {
-  const auto list = GetVisibleWindowTitleList();
-  const auto it = std::find_if(list.begin(), list.end(), [](const std::wstring &title) {
-    if (title.length() < 8) {
+  const std::vector<std::wstring> all = GetWindowTitleList();
+  std::vector<std::wstring> amarecList(all.size());
+  const auto it = std::copy_if(all.begin(), all.end(), amarecList.begin(), [](const std::wstring &title) {
+    if (title.length() < 10) {
       return false;
     }
-    return title.substr(0, 8) == L"AmaRecTV";
+    return title.substr(0, 10) == L"AmaRecTV  ";
   });
-  if (it == list.end()) {
+  amarecList.resize(std::distance(amarecList.begin(), it));
+  if (amarecList.empty()) {
     return{};
   }
-  return *it;
+  std::sort(amarecList.begin(), amarecList.end());
+  return amarecList.back();
 }
 boost::filesystem::path GetSrcDir() {
   return GetDestDir();
@@ -136,7 +136,7 @@ void WriteDebugLog() {
     ofs << boost::wformat(L"%s: %s\n") % envName % GetEnv(envName);
   }
   ofs << boost::wformat(L"window title list:\n");
-  for (const std::wstring &title : GetVisibleWindowTitleList()) {
+  for (const std::wstring &title : GetWindowTitleList()) {
     ofs << boost::wformat(L"\t%s\n") % title;
   }
   ofs << boost::wformat(L"AmaRecTV title: %s\n") % GetAmaRecTvTitle();
