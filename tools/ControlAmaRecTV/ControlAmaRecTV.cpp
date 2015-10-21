@@ -10,30 +10,16 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
 
 
 // 試合終了後8人のスコアが表示された瞬間から録画停止するまでの待ち時間(単位ミリ秒)
-const unsigned int WAIT_STOP_MILLIS = 20 * 1000;
+const unsigned int WAIT_STOP_MILLIS = 15 * 1000;
 
 // 録画停止から録画ファイルリネームを試みるまでの待ち時間(単位ミリ秒)
 const unsigned int WAIT_RENAME_MILLIS = 10 * 1000;
 
 // 録画開始/停止のホットキーを押下してから話すまでの待ち時間(単位ミリ秒)
 const unsigned int WAIT_KEY_UP_MILLIS = 16;
-
-// ファイル名の出力フォーマット
-// %year% 西暦の四桁表記、2015年は2015
-// %month% 月の2桁表記、1月は01
-// %date% 日の2桁表記、1日は01
-// %hour% 時の2桁表記、1時は01、23時は23
-// %minutes% 分の2桁表記、1分は01
-// %second% 秒の2桁表記、1秒は01
-// %stage% ステージ名の日本語表記
-// %rule% ルールの日本語表記
-// %won% 勝敗、win/lose/unknownの3種のいずれか
-const std::wstring FILENAME_FORMAT = L"%year%%month%%date%_%hour%%minutes%_%stage%_%rule%_%won%.avi";
 
 // 録画開始終了などを指示するのに使うホットキー
 // アルファベットは大文字で一文字、特殊キーはWinUser.hのVK_から始まる定数を使用できる
@@ -71,29 +57,18 @@ std::wstring GetEnv(const wchar_t * const name) {
   }
   return{ &buf[0], &buf[length] };
 }
-std::wstring CreateFilename() {
-  std::wstring result = FILENAME_FORMAT;
-  const auto src = boost::posix_time::second_clock::local_time();
-  const tm now = boost::posix_time::to_tm(src);
-  boost::algorithm::replace_all(result, L"%year%", (boost::wformat(L"%04d") % (now.tm_year + 1900)).str());
-  boost::algorithm::replace_all(result, L"%month%", (boost::wformat(L"%02d") % (now.tm_mon + 1)).str());
-  boost::algorithm::replace_all(result, L"%date%", (boost::wformat(L"%02d") % now.tm_mday).str());
-  boost::algorithm::replace_all(result, L"%hour%", (boost::wformat(L"%02d") % now.tm_hour).str());
-  boost::algorithm::replace_all(result, L"%minutes%", (boost::wformat(L"%02d") % now.tm_min).str());
-  boost::algorithm::replace_all(result, L"%second%", (boost::wformat(L"%02d") % now.tm_sec).str());
-  boost::algorithm::replace_all(result, L"%stage%", GetEnv(L"IKALOG_STAGE"));
-  boost::algorithm::replace_all(result, L"%rule%", GetEnv(L"IKALOG_RULE"));
-  boost::algorithm::replace_all(result, L"%won%", GetEnv(L"IKALOG_WON"));
-  return result;
-}
 boost::filesystem::path GetDestDir() {
   return GetEnv(L"IKALOG_MP4_DESTDIR");
 }
 boost::filesystem::path GetDestFilename() {
-  return CreateFilename();
+  return GetEnv(L"IKALOG_MP4_DESTNAME");
 }
 boost::filesystem::path GetDestPath() {
-  boost::filesystem::path path = GetDestDir() / GetDestFilename();
+  const auto filename = GetDestFilename();
+  if (filename.empty()) {
+    return{};
+  }
+  boost::filesystem::path path = GetDestDir() / filename;
   path.replace_extension(".avi");
   return path;
 }
@@ -208,7 +183,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   }
   ::Sleep(WAIT_STOP_MILLIS);
   SendHotKey();
-  ::Sleep(WAIT_RENAME_MILLIS);
-  boost::filesystem::rename(GetSrcPath(), GetDestPath());
+  const auto destPath = GetDestPath();
+  if (!destPath.empty()) {
+    ::Sleep(WAIT_RENAME_MILLIS);
+    boost::filesystem::rename(GetSrcPath(), destPath);
+  }
   return 0;
 }
