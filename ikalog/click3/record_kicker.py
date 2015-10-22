@@ -15,12 +15,17 @@ from ikalog.utils import *
 
 class RecordKicker(object):
 
-    def __init__(self, monitoring_dir=None, kick_path=None, rename_format=None):
+    def __init__(self, monitoring_dir=None, kick_path=None,
+            rename_format_nawabari=None, rename_format_gati=None,
+            rename_format_fes=None, rename_format_default=None):
         self.on_config_reset()
         self.enabled = (not (monitoring_dir is None)) and (not (kick_path is None))
         self.monitoring_dir = monitoring_dir
         self.kick_path = kick_path
-        self.rename_format = rename_format
+        self.rename_format_nawabari = rename_format_nawabari
+        self.rename_format_gati = rename_format_gati
+        self.rename_format_fes = rename_format_fes
+        self.rename_format_default = rename_format_default
 
     def _type_nawabari(self, context):
         return (context['lobby']['type'] == 'public' and
