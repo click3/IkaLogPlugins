@@ -22,6 +22,20 @@ class RecordKicker(object):
         self.kick_path = kick_path
         self.rename_format = rename_format
 
+    def _type_nawabari(self, context):
+        return (context['lobby']['type'] == 'public' and
+            IkaUtils.rule2text(context['game']['rule']) == rules['nawabari']['ja'])
+
+    def _type_gati(self, context):
+        rule_name = IkaUtils.rule2text(context['game']['rule'], unknown='')
+        if (not rule_name):
+            return False
+        return rule_name != rules['nawabari']['ja']
+
+    def _type_fes(self, context):
+        return (context['lobby']['type'] == 'festa' and
+            IkaUtils.rule2text(context['game']['rule']) == rules['nawabari']['ja'])
+
     def _weapon_id_to_text(self, id):
         weapon_list = {id: {'ja': 'unknown'}}
         weapon_list.update(weapons)
@@ -63,8 +77,8 @@ class RecordKicker(object):
     def _get_rank_in_team(self, context):
         return IkaUtils.getMyEntryFromContext(context)['rank_in_team']
 
-    def _create_dest_filename(self, context):
-        if (not self.rename_format):
+    def _create_dest_filename(self, context, format_text):
+        if (not format_text):
             return None
         now = time.localtime()
         list = [
@@ -85,7 +99,7 @@ class RecordKicker(object):
             ['udemae', self._get_udemae(context)],
             ['rank_in_team', self._get_rank_in_team(context)],
         ]
-        result = self.rename_format
+        result = format_text
         for item in list:
             text = None
             if (len(item) == 2):
@@ -107,9 +121,16 @@ class RecordKicker(object):
         thread.start()
 
     def _stop_record(self, context):
+        format_text = self.rename_format_default
+        if self._type_nawabari(context):
+            format_text = self.rename_format_nawabari or format_text
+        elif self._type_gati(context):
+            format_text = self.rename_format_gati or format_text
+        elif self.type_fes(context):
+            format_text = self.rename_format_fes or format_text
         list = [
             ['IKALOG_MP4_DESTDIR', self.monitoring_dir],
-            ['IKALOG_MP4_DESTNAME', self._create_dest_filename(context)],
+            ['IKALOG_MP4_DESTNAME', self._create_dest_filename(context, format_text)],
             ['IKALOG_STAGE', self._get_stage_name(context)],
             ['IKALOG_RULE', self._get_rule_name(context)],
             ['IKALOG_WEAPON', self._get_weapon_name(context)],
@@ -135,7 +156,10 @@ class RecordKicker(object):
         self.enabled = False
         self.monitoring_dir = None
         self.kick_path = os.path.join(os.getcwd(), 'tools', 'ControlAmaRecTV.exe')
-        self.rename_format = u'%year%%month%%date%_%hour%%minute%_%stage%_%weapon%_%rule%_%kill%キル%death%デス%point%pt.avi'
+        self.rename_format_nawabari = None
+        self.rename_format_gati = None
+        self.rename_format_fes = None
+        self.rename_format_default = u'%year%%month%%date%_%hour%%minute%_%stage%_%weapon%_%rule%_%kill%キル%death%デス.avi'
 
     def on_config_load_from_context(self, context):
         self.on_config_reset(context)
@@ -150,13 +174,22 @@ class RecordKicker(object):
             self.monitoring_dir = conf['MonitoringDir']
         if 'KickPath' in conf:
             self.kick_path = conf['KickPath']
-        if 'RenameFormat' in conf:
-            self.rename_format = conf['RenameFormat']
+        if 'RenameFormatNawabari' in conf:
+            self.rename_format_nawabari = conf['RenameFormatNawabari']
+        if 'RenameFormatGati' in conf:
+            self.rename_format_gati = conf['RenameFormatGati']
+        if 'RenameFormatFes' in conf:
+            self.rename_format_fes = conf['RenameFormatFes']
+        if 'RenameFormatDefault' in conf:
+            self.rename_format_default = conf['RenameFormatDefault']
 
         self.checkEnabled.SetValue(self.enabled)
         self.editMonitoringDir.SetValue(self.monitoring_dir or '')
         self.editKickPath.SetValue(self.kick_path or '')
-        self.editRenameFormat.SetValue(self.rename_format or '')
+        self.editRenameFormatNawabari.SetValue(self.rename_format_nawabari or '')
+        self.editRenameFormatGati.SetValue(self.rename_format_gati or '')
+        self.editRenameFormatFes.SetValue(self.rename_format_fes or '')
+        self.editRenameFormatDefault.SetValue(self.rename_format_default or '')
         return True
 
     def on_config_save_to_context(self, context):
@@ -164,22 +197,31 @@ class RecordKicker(object):
             'Enable': self.enabled,
             'MonitoringDir': self.monitoring_dir,
             'KickPath': self.kick_path,
-            'RenameFormat': self.rename_format,
+            'RenameFormatNawabari': self.rename_format_nawabari,
+            'RenameFormatGati': self.rename_format_gati,
+            'RenameFormatFes': self.rename_format_fes,
+            'RenameFormatDefault': self.rename_format_default,
         }
 
     def on_config_apply(self, context):
         self.enabled = self.checkEnabled.GetValue()
         self.monitoring_dir = self.editMonitoringDir.GetValue()
         self.kick_path = self.editKickPath.GetValue()
-        self.rename_format = self.editRenameFormat.GetValue()
+        self.rename_format_nawabari = self.editRenameFormatNawabari.GetValue()
+        self.rename_format_gati = self.editRenameFormatGati.GetValue()
+        self.rename_format_fes = self.editRenameFormatFes.GetValue()
+        self.rename_format_default = self.editRenameFormatDefault.GetValue()
 
     def on_option_tab_create(self, notebook):
         self.panel = wx.Panel(notebook, wx.ID_ANY)
         notebook.InsertPage(0, self.panel, 'RecordKicker')
-        self.checkEnabled = wx.CheckBox(self.panel, wx.ID_ANY, u'録画開始と終了をIkaLogから制御する')
+        self.checkEnabled = wx.CheckBox(self.panel, wx.ID_ANY, u'録画ツールの録画開始と終了をIkaLogから制御する')
         self.editMonitoringDir = wx.TextCtrl(self.panel, wx.ID_ANY, '')
         self.editKickPath = wx.TextCtrl(self.panel, wx.ID_ANY, '')
-        self.editRenameFormat = wx.TextCtrl(self.panel, wx.ID_ANY, '')
+        self.editRenameFormatNawabari = wx.TextCtrl(self.panel, wx.ID_ANY, '')
+        self.editRenameFormatGati = wx.TextCtrl(self.panel, wx.ID_ANY, '')
+        self.editRenameFormatFes = wx.TextCtrl(self.panel, wx.ID_ANY, '')
+        self.editRenameFormatDefault = wx.TextCtrl(self.panel, wx.ID_ANY, '')
 
         self.layout = wx.BoxSizer(wx.VERTICAL)
         self.layout.Add(self.checkEnabled)
@@ -188,7 +230,14 @@ class RecordKicker(object):
         self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'録画操作ツールのパス'))
         self.layout.Add(self.editKickPath, flag=wx.EXPAND)
         self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'録画ファイルリネームする場合のフォーマット'))
-        self.layout.Add(self.editRenameFormat, flag=wx.EXPAND)
+        self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'ナワバリバトル'))
+        self.layout.Add(self.editRenameFormatNawabari, flag=wx.EXPAND)
+        self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'ガチマッチ'))
+        self.layout.Add(self.editRenameFormatGati, flag=wx.EXPAND)
+        self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'フェス'))
+        self.layout.Add(self.editRenameFormatFes, flag=wx.EXPAND)
+        self.layout.Add(wx.StaticText(self.panel, wx.ID_ANY, u'デフォルト(上で未設定はすべてこれ、判定失敗時も)'))
+        self.layout.Add(self.editRenameFormatDefault, flag=wx.EXPAND)
         self.panel.SetSizer(self.layout)
 
     def on_lobby_matched(self, context):
