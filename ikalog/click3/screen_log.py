@@ -18,6 +18,7 @@ class ScreenLog(object):
         self.on_config_reset()
         self.enabled = not (out_dir is None)
         self.out_dir = out_dir
+        self.last_dead_ss_path = None
 
     def _get_default_out_dir(self):
         return os.path.join(os.getcwd(), 'screen_logs')
@@ -29,19 +30,24 @@ class ScreenLog(object):
         reason_list.update(special_weapons)
         return reason_list[reason]['ja']
 
+    def _create_file_path(self, filename):
+        postfix = time.strftime('%Y%m%d%H%M%S', time.localtime())
+        path = os.path.join(self.out_dir, filename + '_' + postfix + '.png')
+        return path
+
     def _save_screen(self, context, filename):
         if not self.enabled:
-            return
+            return None
         try:
             os.mkdir(self.out_dir)
         except:
             pass
         temp_path = os.path.join(self.out_dir, 'temp.png')
         IkaUtils.writeScreenshot(temp_path, context['engine']['frame'])
-        postfix = time.strftime('%Y%m%d%H%M%S', time.localtime())
-        path = os.path.join(self.out_dir, filename + '_' + postfix + '.png')
+        path = self._create_file_path(filename)
         os.rename(temp_path, path)
         print('save screen log: %s' % path)
+        return path
 
     def on_config_reset(self, context=None):
         self.enabled = False
@@ -107,10 +113,16 @@ class ScreenLog(object):
         self._save_screen(context, 'killed')
 
     def on_game_dead(self, context):
-        self._save_screen(context, 'dead')
+        self.last_dead_ss_path = self._save_screen(context, 'dead')
 
     def on_game_death_reason_identified(self, context):
-        self._save_screen(context, 'death_reason_' + self._death_reason_to_text(context['game']['last_death_reason']))
+        if (not self.last_dead_ss_path):
+            return
+        path = self._create_file_path('death_reason_' + self._death_reason_to_text(context['game']['last_death_reason']))
+        if os.path.exists(self.last_dead_ss_path):
+            os.rename(self.last_dead_ss_path, path)
+            print('rename screen log: %s => %s' % (self.last_dead_ss_path, path))
+            self.last_dead_ss_path = None
 
     def on_game_individual_result_analyze(self, context):
         self._save_screen(context, 'result_analyze')
