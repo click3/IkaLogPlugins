@@ -60,6 +60,9 @@ class RecordKicker(object):
         except:
             return 'unknown'
 
+    def _get_rank_in_team(self, context):
+        return IkaUtils.getMyEntryFromContext(context)['rank_in_team']
+
     def _create_dest_filename(self, context):
         if (not self.rename_format):
             return None
@@ -80,6 +83,7 @@ class RecordKicker(object):
             ['won', self._get_won(context)],
             ['rank', self._get_rank(context)],
             ['udemae', self._get_udemae(context)],
+            ['rank_in_team', self._get_rank_in_team(context)],
         ]
         result = self.rename_format
         for item in list:
@@ -115,6 +119,7 @@ class RecordKicker(object):
             ['IKALOG_WON', self._get_won(context)],
             ['IKALOG_RANK', self._get_rank(context)],
             ['IKALOG_UDEMAE', self._get_udemae(context)],
+            ['IKALOG_RANK_IN_TEAM', self._get_rank_in_team(context)],
         ]
         for item in list:
             if (item[1] == None):
