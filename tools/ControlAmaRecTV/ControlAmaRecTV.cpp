@@ -183,9 +183,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   }
   ::Sleep(WAIT_STOP_MILLIS);
   SendHotKey();
-  const auto destPath = GetDestPath();
+  const boost::filesystem::path destPath = GetDestPath();
   if (!destPath.empty()) {
     ::Sleep(WAIT_RENAME_MILLIS);
+    boost::filesystem::create_directories(destPath.parent_path());
     boost::filesystem::rename(GetSrcPath(), destPath);
   }
   return 0;
