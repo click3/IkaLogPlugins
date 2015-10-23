@@ -41,11 +41,6 @@ class RecordKicker(object):
         return (context['lobby']['type'] == 'festa' and
             IkaUtils.rule2text(context['game']['rule']) == rules['nawabari']['ja'])
 
-    def _weapon_id_to_text(self, id):
-        weapon_list = {id: {'ja': 'unknown'}}
-        weapon_list.update(weapons)
-        return weapon_list[id]['ja']
-
     def _get_stage_name(self, context):
         return IkaUtils.map2text(context['game']['map'], unknown='unknown')
 
@@ -53,7 +48,7 @@ class RecordKicker(object):
         return IkaUtils.rule2text(context['game']['rule'], unknown='unknown')
 
     def _get_weapon_name(self, context):
-        return self._weapon_id_to_text(IkaUtils.getMyEntryFromContext(context)['weapon'])
+        return IkaUtils.getMyEntryFromContext(context)['weapon']
 
     def _get_kill(self, context):
         return IkaUtils.getMyEntryFromContext(context)['kills']
