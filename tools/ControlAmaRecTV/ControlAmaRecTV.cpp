@@ -181,13 +181,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   if (!IsRecording()) {
     return 1;
   }
+  const boost::filesystem::path srcPath = GetSrcPath();
+  const boost::filesystem::path destPath = GetDestPath();
   ::Sleep(WAIT_STOP_MILLIS);
   SendHotKey();
-  const boost::filesystem::path destPath = GetDestPath();
   if (!destPath.empty()) {
     ::Sleep(WAIT_RENAME_MILLIS);
     boost::filesystem::create_directories(destPath.parent_path());
-    boost::filesystem::rename(GetSrcPath(), destPath);
+    boost::filesystem::rename(srcPath, destPath);
   }
   return 0;
 }
