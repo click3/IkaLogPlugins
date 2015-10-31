@@ -130,6 +130,9 @@ class ScreenLog(object):
     def on_game_individual_result(self, context):
         self._save_screen(context, 'result_' + IkaUtils.getWinLoseText(context['game']['won']))
 
+    def on_result_gears(self, context):
+        self._save_screen(context, 'result_gears')
+
     def on_game_reset(self, context):
         self._save_screen(context, 'reset')
 
