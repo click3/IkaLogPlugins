@@ -131,7 +131,7 @@ class RecordKicker(object):
             format_text = self.rename_format_nawabari or format_text
         elif self._type_gati(context):
             format_text = self.rename_format_gati or format_text
-        elif self.type_fes(context):
+        elif self._type_fes(context):
             format_text = self.rename_format_fes or format_text
         list = [
             ['IKALOG_MP4_DESTDIR', self.monitoring_dir],
