@@ -190,7 +190,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     boost::filesystem::create_directories(destPath.parent_path());
     boost::filesystem::rename(srcPath, destPath);
     const boost::filesystem::path mp4Path = boost::filesystem::path(destPath).replace_extension(".mp4");
-    const std::wstring cmdOrig = (boost::wformat(L"ffmpeg -i %s -codec copy %s") % destPath % mp4Path).str();
+    const std::wstring cmdOrig = (boost::wformat(L"ffmpeg -i %s -vcodec copy -acodec libvo_aacenc %s") % destPath % mp4Path).str();
     wchar_t cmd[4096] = { '\0' };
     std::copy(cmdOrig.begin(), cmdOrig.end(), cmd);
     PROCESS_INFORMATION pi;
