@@ -61,7 +61,7 @@ boost::filesystem::path GetDestDir() {
   return GetEnv(L"IKALOG_MP4_DESTDIR");
 }
 boost::filesystem::path GetDestFilename() {
-  return GetEnv(L"IKALOG_MP4_DESTNAME");
+  return boost::filesystem::path(GetEnv(L"IKALOG_MP4_DESTNAME")).filename();
 }
 boost::filesystem::path GetDestPath() {
   const auto filename = GetDestFilename();
